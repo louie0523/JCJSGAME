@@ -21,7 +21,7 @@ MonoBehaviour:
     value: 10
   aperture:
     overrideState: 1
-    value: 3.6
+    value: 3.8
   focalLength:
     overrideState: 1
     value: 67
@@ -89,7 +89,7 @@ MonoBehaviour:
     value: 1
   softKnee:
     overrideState: 1
-    value: 0.713
+    value: 0.833
   clamp:
     overrideState: 1
     value: 65472
@@ -249,7 +249,7 @@ MonoBehaviour:
     value: 43
   mixerRedOutRedIn:
     overrideState: 0
-    value: 100
+    value: 23
   mixerRedOutGreenIn:
     overrideState: 0
     value: 0
@@ -1505,7 +1505,7 @@ MonoBehaviour:
     defaultState: 1
   intensity:
     overrideState: 1
-    value: 0.528
+    value: 0.761
   fastMode:
     overrideState: 1
     value: 0
@@ -1527,7 +1527,7 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: -15
+    value: 21
   intensityX:
     overrideState: 1
     value: 1

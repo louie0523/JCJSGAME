@@ -2,24 +2,30 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
 
-    public int PlayerHP = 100;
+    public Boss boss;
+
     public float BossMaxHp = 1000f;
     public float BossHP;
 
+    public AudioClip BossSound; // Assign the sound clip in the Inspector
+
     [SerializeField] private Slider bossHPSlider;
+    private AudioSource audioSource; // Add a reference to the AudioSource
 
     void Update()
     {
-        if (Input.GetKeyUp(KeyCode.F))
+
+        if (BossHP <= 0)
         {
-            BossHP -= 10f;
-            UpdateBossHP(BossHP);
-            Debug.Log("보스에게 10 데미지!");
+            boss.HandleBossDeath();
+            PlayBossSound(); // Play sound when boss dies
+            SceneManager.LoadScene("Clear");
         }
     }
 
@@ -34,6 +40,8 @@ public class GameManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
+        audioSource = GetComponent<AudioSource>(); // Get the AudioSource component attached to the GameManager
     }
 
     public static GameManager Instance
@@ -56,7 +64,7 @@ public class GameManager : MonoBehaviour
             bossHPSlider.value = BossHP;
         }
         BossHP = BossMaxHp;
-        UpdateBossHP(BossHP);  
+        UpdateBossHP(BossHP);
     }
 
     public void UpdateBossHP(float newHP)
@@ -65,6 +73,14 @@ public class GameManager : MonoBehaviour
         if (bossHPSlider != null)
         {
             bossHPSlider.value = BossHP;
+        }
+    }
+
+    private void PlayBossSound()
+    {
+        if (audioSource != null && BossSound != null)
+        {
+            audioSource.PlayOneShot(BossSound); // Play the sound
         }
     }
 }

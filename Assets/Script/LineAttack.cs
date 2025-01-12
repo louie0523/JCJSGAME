@@ -10,6 +10,7 @@ public class LineAttack : MonoBehaviour
     public GameObject TriangleText;
     public GameObject SquareText;
     public GameObject PantagonText;
+    public Boss boss;
     public float lineDuration = 1f;
     public float textDuration = 1f;
     public float bossDamageMultiplier = 0.5f;
@@ -17,11 +18,14 @@ public class LineAttack : MonoBehaviour
     public float triangleDamageMultiplier = 1.0f;
     public float squareDamageMultiplier = 1.5f;
     public float pentagonDamageMultiplier = 2.0f;
+    public AudioClip[] LineAttackSound; // 소리 파일 배열
+    private AudioSource audioSource; // AudioSource 컴포넌트
 
     private Vector3 startMousePosition;
     private Vector3 endMousePosition;
     private bool isDrawing = false;
     private LineRenderer currentLineRenderer;
+    private EdgeCollider2D currentEdgeCollider; // EdgeCollider2D 변수 추가
 
     private List<LineRenderer> lines = new List<LineRenderer>();
     private List<LineRenderer> crossedLines = new List<LineRenderer>();
@@ -29,6 +33,10 @@ public class LineAttack : MonoBehaviour
 
     void Start()
     {
+        // AudioSource 컴포넌트를 현재 오브젝트에서 찾아 할당
+        audioSource = GetComponent<AudioSource>();
+
+        // EdgeCollider2D 설정
         EdgeCollider2D edgeCollider = linePrefab.gameObject.GetComponent<EdgeCollider2D>();
         if (edgeCollider != null)
         {
@@ -36,12 +44,23 @@ public class LineAttack : MonoBehaviour
         }
     }
 
+
+
+    private void PlaySound(int soundIndex)
+    {
+        if (LineAttackSound != null && LineAttackSound.Length > 0 && soundIndex < LineAttackSound.Length)
+        {
+            audioSource.PlayOneShot(LineAttackSound[soundIndex]);
+        }
+    }
+
+
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
         {
             Vector3 mouseWorldPosition = GetMouseWorldPosition();
-            if (IsInsideAttackBox(mouseWorldPosition))
+            if (IsInsideAttackBox(mouseWorldPosition)) // Attack Box 안에서만 선을 그릴 수 있음
             {
                 startMousePosition = mouseWorldPosition;
                 isDrawing = true;
@@ -50,6 +69,14 @@ public class LineAttack : MonoBehaviour
                 currentLineRenderer.positionCount = 2;
                 currentLineRenderer.SetPosition(0, startMousePosition);
                 currentLineRenderer.SetPosition(1, startMousePosition);
+
+                // EdgeCollider2D는 PlayerTurn이 false일 때만 추가
+                if (!boss.isPlayerTurn)
+                {
+                    currentEdgeCollider = currentLineRenderer.gameObject.AddComponent<EdgeCollider2D>();
+                    currentEdgeCollider.isTrigger = true;
+                    currentEdgeCollider.points = new Vector2[] { startMousePosition, startMousePosition };
+                }
             }
         }
 
@@ -65,6 +92,15 @@ public class LineAttack : MonoBehaviour
                 Vector3 clampedPosition = ClampPositionToAttackBox(mouseWorldPosition);
                 currentLineRenderer.SetPosition(1, clampedPosition);
             }
+
+            // EdgeCollider2D의 포인트 업데이트
+            if (currentEdgeCollider != null)
+            {
+                currentEdgeCollider.points = new Vector2[] {
+                currentLineRenderer.GetPosition(0),
+                currentLineRenderer.GetPosition(1)
+                };
+            }
         }
 
         if (Input.GetMouseButtonUp(0) && isDrawing)
@@ -79,12 +115,80 @@ public class LineAttack : MonoBehaviour
 
             StartCoroutine(ClearLineAfterDelay(currentLineRenderer, lineDuration));
 
-            ApplyDamageToBoss();
+            // 플레이어 턴이 아닐 때는 피해를 입히지 않음
+            if (boss.isPlayerTurn)
+            {
+                ApplyDamageToBoss();
+            }
 
-            CheckForLineCrossing();
-            DetectShape();
+            // 플레이어 턴일 때만 교차 및 도형 감지 실행
+            if (boss.isPlayerTurn)
+            {
+                CheckForLineCrossing();
+                DetectShape();
+            }
         }
     }
+
+    private void CheckForLineCrossing()
+    {
+        if (!boss.isPlayerTurn) return;
+
+        foreach (var line in lines)
+        {
+            foreach (var otherLine in lines)
+            {
+                if (line != otherLine && !crossedLines.Contains(line) && !crossedLines.Contains(otherLine))
+                {
+                    Vector3 intersectionPoint = GetIntersection(line.GetPosition(0), line.GetPosition(1), otherLine.GetPosition(0), otherLine.GetPosition(1));
+                    if (intersectionPoint != Vector3.zero)
+                    {
+                        ShowCrossText(intersectionPoint);
+                        ApplyCrossDamage(line, otherLine, intersectionPoint);
+
+                        crossedLines.Add(line);
+                        crossedLines.Add(otherLine);
+
+                        // 교차 시 사운드 재생
+                        PlaySound(1);
+                    }
+                }
+            }
+        }
+    }
+
+    private void DetectShape()
+    {
+        if (!boss.isPlayerTurn) return;
+
+        intersectionPoints.Clear();
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = i + 1; j < lines.Count; j++)
+            {
+                Vector3 intersection = GetIntersection(
+                    lines[i].GetPosition(0), lines[i].GetPosition(1),
+                    lines[j].GetPosition(0), lines[j].GetPosition(1));
+
+                if (intersection != Vector3.zero && !ContainsPoint(intersectionPoints, intersection))
+                {
+                    intersectionPoints.Add(intersection);
+                }
+            }
+        }
+
+        if (IsClosedShape(3)) ApplyShapeDamage(triangleDamageMultiplier, "Triangle");
+        if (IsClosedShape(4)) ApplyShapeDamage(squareDamageMultiplier, "Square");
+        if (IsClosedShape(5)) ApplyShapeDamage(pentagonDamageMultiplier, "Pentagon");
+
+        // 도형 감지 시 사운드 재생
+        if (intersectionPoints.Count > 0)
+        {
+            PlaySound(1);
+        }
+    }
+
 
     private Vector3 GetMouseWorldPosition()
     {
@@ -123,55 +227,13 @@ public class LineAttack : MonoBehaviour
         GameManager.Instance.UpdateBossHP(GameManager.Instance.BossHP - damage);
 
         Debug.Log($"보스에게 입힌 피해: {damage}, 남은 보스 체력: {GameManager.Instance.BossHP}");
+
+        // 선을 그려서 피해를 입혔을 때 사운드 재생
+        PlaySound(0);
     }
 
-    private void CheckForLineCrossing()
-    {
-        foreach (var line in lines)
-        {
-            foreach (var otherLine in lines)
-            {
-                if (line != otherLine && !crossedLines.Contains(line) && !crossedLines.Contains(otherLine))
-                {
-                    Vector3 intersectionPoint = GetIntersection(line.GetPosition(0), line.GetPosition(1), otherLine.GetPosition(0), otherLine.GetPosition(1));
-                    if (intersectionPoint != Vector3.zero)
-                    {
-                        ShowCrossText(intersectionPoint);
-                        ApplyCrossDamage(line, otherLine, intersectionPoint);
 
-                        crossedLines.Add(line);
-                        crossedLines.Add(otherLine);
-                    }
-                }
-            }
-        }
-    }
 
-    private void DetectShape()
-    {
-        intersectionPoints.Clear();
-
-        // Find intersections
-        for (int i = 0; i < lines.Count; i++)
-        {
-            for (int j = i + 1; j < lines.Count; j++)
-            {
-                Vector3 intersection = GetIntersection(
-                    lines[i].GetPosition(0), lines[i].GetPosition(1),
-                    lines[j].GetPosition(0), lines[j].GetPosition(1));
-
-                if (intersection != Vector3.zero && !ContainsPoint(intersectionPoints, intersection))
-                {
-                    intersectionPoints.Add(intersection);
-                }
-            }
-        }
-
-        // Check for shapes
-        if (IsClosedShape(3)) ApplyShapeDamage(triangleDamageMultiplier, "Triangle");
-        if (IsClosedShape(4)) ApplyShapeDamage(squareDamageMultiplier, "Square");
-        if (IsClosedShape(5)) ApplyShapeDamage(pentagonDamageMultiplier, "Pentagon");
-    }
 
     private bool IsClosedShape(int vertexCount)
     {
@@ -242,6 +304,7 @@ public class LineAttack : MonoBehaviour
             ShowShapeText(center, shapeTextPrefab);
         }
     }
+
     // 도형의 중앙 계산
     private Vector3 CalculateShapeCenter(List<Vector3> points)
     {
@@ -272,6 +335,7 @@ public class LineAttack : MonoBehaviour
         GameObject textInstance = Instantiate(textPrefab, position, Quaternion.identity);
         StartCoroutine(ClearTextAfterDelay(textInstance, textDuration));
     }
+
     private Vector3 GetIntersection(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4)
     {
         float x1 = p1.x, y1 = p1.y;

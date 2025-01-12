@@ -99,7 +99,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uAD50\uCC28!"
+  m_text: Cross!
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 38b09582cd89e094d8bb33b8e6fc41cf, type: 2}
   m_sharedMaterial: {fileID: 8977367726119337300, guid: 38b09582cd89e094d8bb33b8e6fc41cf, type: 2}

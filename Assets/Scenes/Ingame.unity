@@ -6171,8 +6171,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boss: {fileID: 1360371357}
-  BossMaxHp: 5000
-  BossHP: 5000
+  BossMaxHp: 700
+  BossHP: 700
   BossSound: {fileID: 8300000, guid: b47b48a76950e41edbf228b853955b07, type: 3}
   bossHPSlider: {fileID: 2082990788}
 --- !u!82 &1093857112
@@ -13150,8 +13150,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01fe63e12c1f9344fb52792227ce8b90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PlayerHp: 30
-  moveSpeed: 5
+  PlayerHp: 100
+  moveSpeed: 6
   attackBoxCollider: {fileID: 824715962}
   NoHitDamage: 0
   HpText: {fileID: 1564316914}

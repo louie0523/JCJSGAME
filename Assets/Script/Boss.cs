@@ -506,7 +506,7 @@ public class Boss : MonoBehaviour
         Debug.Log("보스가 2페이즈 패턴을 준비합니다.");
 
         // 페이즈 변환될동안 잠시 대기
-        int randomPattern = Random.Range(5, 6); // 1, 2, 3 중 하나를 랜덤으로 선택
+        int randomPattern = Random.Range(1, 6); // 1, 2, 3 중 하나를 랜덤으로 선택
 
         switch (randomPattern)
         {
